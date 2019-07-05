@@ -1,6 +1,6 @@
 {
   "name": "@al/haversack",
-  "version": "1.0.0-beta-navigation.1",
+  "version": "1.1.0-beta-navigation.2",
   "description": "An array of lightweight utilities and common types shared across NEPAL libraries and applications based on them.",
   "main": "index.js",
   "scripts": {
