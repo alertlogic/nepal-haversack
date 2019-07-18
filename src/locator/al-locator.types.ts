@@ -57,6 +57,7 @@ export class AlLocation
     public static HealthUI          = "cd17:health";
     public static DisputesUI        = "cd17:disputes";
     public static DashboardsUI      = "cd19:dashboards";
+    public static ExposuresUI       = "cd17:exposures";
 
     /**
      * Miscellaneous/External Resources
