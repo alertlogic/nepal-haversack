@@ -1,6 +1,6 @@
 {
   "name": "@al/haversack",
-  "version": "1.0.0-rc.6",
+  "version": "1.0.0-rc.7",
   "description": "An array of lightweight utilities and common types shared across NEPAL libraries and applications based on them.",
   "main": "index.js",
   "scripts": {
