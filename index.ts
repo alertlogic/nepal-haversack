@@ -1,0 +1,1 @@
+import { AlSchemaValidator } from './src';

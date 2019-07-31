@@ -157,6 +157,8 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
     ...AlLocation.uiNode(AlLocation.EndpointsUI, 'endpoints', 8004),
     ...AlLocation.uiNode(AlLocation.DashboardsUI, 'dashboards', 7001),
     ...AlLocation.uiNode(AlLocation.HealthUI, 'health', 8003),
+    ...AlLocation.uiNode(AlLocation.ExposuresUI, 'exposures', 8006),
+    ...AlLocation.uiNode(AlLocation.LandscapeUI, 'landscape', 4230),
 
     {
         locTypeId: AlLocation.DashboardsUI,
