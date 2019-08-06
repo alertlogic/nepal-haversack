@@ -11,15 +11,15 @@
 
 /**
  * AlLocationContext defines the context in which a specific location or set of locations may exist.
- *     - environment - dev, integration, production?
+ *     - environment - development, integration, production?
  *     - residency - US or EMEA (or default)?
- *     - location - insight-us-virginia, insight-eu-ireland, defender-us-ashburn, defender-us-denver, defender-eu-newport
- *     - accessible - a list of accessible locations
+ *     - insightLocationId - insight-us-virginia, insight-eu-ireland, defender-us-ashburn, defender-us-denver, defender-uk-newport
+ *     - accessible - a list of accessible insight location IDs
  */
 export interface AlLocationContext {
     environment?:string;
     residency?:string;
-    location?:string;
+    insightLocationId?:string;
     accessible?:string[];
 }
 
@@ -100,11 +100,15 @@ export class AlLocation
     }
 }
 
+/**
+ * Describes a single instance of a location type (AlLocation).
+ */
+
 export interface AlLocationDescriptor
 {
-    locTypeId:string;               //  This should correspond to one of the ALServiceIdentity string constants
+    locTypeId:string;               //  This should correspond to one of the ALLocation string constants, e.g., AlLocation.AccountsUI or AlLocation.GlobalAPI.
     parentId?:string;               //  If the given node is a child of another node, this is the parent's ID
-    locationId?:string;             //  The location ID as defined by the global locations service -- e.g., 'defender-us-ashburn' or 'insight-eu-ireland'.
+    insightLocationId?:string;      //  The location ID as defined by the global locations service -- e.g., 'defender-us-ashburn' or 'insight-eu-ireland'.
     uri:string;                     //  URI of the entity
     residency?:string;              //  A data residency domain
     environment?:string;            //  'production, 'integration', 'development'...
@@ -122,22 +126,43 @@ export interface AlLocationDescriptor
 
 export class AlLocatorMatrix
 {
-    uriMap:{[pattern:string]:{matcher:RegExp,location:AlLocationDescriptor}} = {};
-    nodes:{[locTypeId:string]:AlLocationDescriptor} = {};
-    _nodeMap:{[hashKey:string]:AlLocationDescriptor} = {};
-
-    /**
-     *  These four properties echo the matrix's 'context' (see AlLocationContext above)
-     */
-    context:AlLocationContext = {
-        environment:    "production",
-        residency:      "US",
-        location:       null,
-        accessible:     null
+    protected static insightLocations = {
+        "defender-us-denver": {
+            residency: "US",
+            logicalRegion: "us-west-1"
+        },
+        "defender-us-ashburn": {
+            residency: "US",
+            logicalRegion: "us-east-1"
+        },
+        "defender-uk-newport": {
+            residency: "EMEA",
+            logicalRegion: "uk-west-1"
+        },
+        "insight-us-virginia": {
+            residency: "US",
+            alternatives: [ "defender-us-denver", "defender-us-ashburn" ]
+        },
+        "insight-eu-ireland": {
+            residency: "EMEA",
+            alternatives: [ "defender-uk-newport" ]
+        }
     };
 
-    actingUri:string = null;
-    actor:AlLocationDescriptor = null;
+    protected actingUri:string = null;
+    protected actor:AlLocationDescriptor = null;
+
+    protected uriMap:{[pattern:string]:{matcher:RegExp,location:AlLocationDescriptor}} = {};
+    protected nodes:{[locTypeId:string]:AlLocationDescriptor} = {};
+    protected _nodeMap:{[hashKey:string]:AlLocationDescriptor} = {};
+
+    protected context:AlLocationContext = {
+        environment:        "production",
+        residency:          "US",
+        insightLocationId:  null,
+        accessible:         null
+    };
+
 
     constructor( nodes:AlLocationDescriptor[] = [], actingUri:string|boolean = true, context:AlLocationContext = null ) {
         if ( context ) {
@@ -226,10 +251,10 @@ export class AlLocatorMatrix
      */
     public setContext( context:AlLocationContext = null ) {
         this.nodes = {};    //  flush lookup cache
-        this.context.location = context && context.location ? context.location : this.context.location;
+        this.context.insightLocationId = context && context.insightLocationId ? context.insightLocationId : this.context.insightLocationId;
         this.context.accessible = context && context.accessible && context.accessible.length ? context.accessible : this.context.accessible;
-        if ( this.context.location ) {
-            let locationNode = this.findOne( n => { return n.locationId === this.context.location; } );
+        if ( this.context.insightLocationId ) {
+            let locationNode = this.findOne( n => { return n.insightLocationId === this.context.insightLocationId; } );
             if ( locationNode && locationNode.residency ) {
                 this.context.residency = locationNode.residency;
             }
@@ -237,6 +262,7 @@ export class AlLocatorMatrix
         }
         this.context.environment = context && context.environment ? context.environment : this.context.environment;
         this.context.residency = context && context.residency ? context.residency : this.context.residency;
+        this.normalizeContext();
     }
 
     public getContext():AlLocationContext {
@@ -259,22 +285,22 @@ export class AlLocatorMatrix
         }
         let environment = context && context.environment ? context.environment : this.context.environment;
         let residency = context && context.residency ? context.residency : this.context.residency;
-        let location = context && context.location ? context.location : this.context.location;
+        let insightLocationId = context && context.insightLocationId ? context.insightLocationId : this.context.insightLocationId;
         let accessible = context && context.accessible ? context.accessible : this.context.accessible;
         let node = null;
 
-        if ( location ) {
-            if ( this._nodeMap.hasOwnProperty( `${locTypeId}-${environment}-${residency}-${location}` ) ) {
-                node = this._nodeMap[`${locTypeId}-${environment}-${residency}-${location}`];
+        if ( insightLocationId ) {
+            if ( this._nodeMap.hasOwnProperty( `${locTypeId}-${environment}-${residency}-${insightLocationId}` ) ) {
+                node = this._nodeMap[`${locTypeId}-${environment}-${residency}-${insightLocationId}`];
             }
         }
 
         if ( ! node && accessible && accessible.length ) {
             for ( let i = 0; i < accessible.length; i++ ) {
-                let locationId = accessible[i];
-                if ( locationId !== location ) {
-                    if ( this._nodeMap.hasOwnProperty( `${locTypeId}-${environment}-${residency}-${locationId}` ) ) {
-                        node = this._nodeMap[`${locTypeId}-${environment}-${residency}-${locationId}`];
+                let accessibleLocationId = accessible[i];
+                if ( accessibleLocationId !== insightLocationId ) {
+                    if ( this._nodeMap.hasOwnProperty( `${locTypeId}-${environment}-${residency}-${accessibleLocationId}` ) ) {
+                        node = this._nodeMap[`${locTypeId}-${environment}-${residency}-${accessibleLocationId}`];
                     }
                 }
             }
@@ -320,8 +346,8 @@ export class AlLocatorMatrix
      */
     public saveNode( node:AlLocationDescriptor ) {
         if ( node.environment && node.residency ) {
-            if ( node.locationId ) {
-                this._nodeMap[`${node.locTypeId}-${node.environment}-${node.residency}-${node.locationId}`] = node;
+            if ( node.insightLocationId ) {
+                this._nodeMap[`${node.locTypeId}-${node.environment}-${node.residency}-${node.insightLocationId}`] = node;
             }
             this._nodeMap[`${node.locTypeId}-${node.environment}-${node.residency}`] = node;
         }
@@ -386,5 +412,38 @@ export class AlLocatorMatrix
         pattern = pattern.replace( /\*/, "[a-zA-Z0-9_]+" );                 //  convert * wildcard into group match with 1 or more characters
         pattern += ".*$";                                                   //  add filler and terminus anchor
         return pattern;
+    }
+
+    /**
+     * This method normalizes the current context.  In practice, this means mapping an insight location ID to the correct defender datacenter.
+     * In other words, it is "black magic."  Or at least, dark gray.
+     */
+    normalizeContext() {
+        if ( ! this.context.insightLocationId || ! this.context.accessible ) {
+            return;
+        }
+        if ( ! AlLocatorMatrix.insightLocations.hasOwnProperty( this.context.insightLocationId ) ) {
+            return;
+        }
+        let insightLocation = AlLocatorMatrix.insightLocations[this.context.insightLocationId];
+        if ( insightLocation.alternatives ) {
+            let selected = null;
+            for ( let i = 0; i < insightLocation.alternatives.length; i++ ) {
+                let candidateLocationId = insightLocation.alternatives[i];
+                if ( this.context.accessible.indexOf( candidateLocationId ) !== -1 ) {
+                    selected = candidateLocationId;
+                    break;
+                }
+            }
+            if ( selected === null ) {
+                selected = insightLocation.alternatives[0];
+            }
+            console.log(`Notice: treating insight location '%s' as '%s'`, this.context.insightLocationId, selected );       //  logging because this has historically been a point of great confusion
+            this.context.insightLocationId = selected;
+        }
+        if ( insightLocation.residency && this.context.residency !== insightLocation.residency ) {
+            //  Location IDs have higher specificity than residency settings, so given defender-uk-newport and residency: US, the residency should be overridden to reflect EMEA.
+            this.context.residency = insightLocation.residency;
+        }
     }
 }

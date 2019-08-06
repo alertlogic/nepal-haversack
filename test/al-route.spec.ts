@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import { describe, before } from 'mocha';
 import { AlLocationContext, AlLocation, AlLocationDescriptor, AlLocatorMatrix } from '../src/locator';
 import { AlRoutingHost, AlRouteCondition, AlRouteAction, AlRouteDefinition, AlRoute } from '../src/locator';
+import * as sinon from 'sinon';
 
 describe( 'AlRoute', () => {
 
@@ -17,7 +18,7 @@ describe( 'AlRoute', () => {
         'c': true,
         'd': false
     };
-    const routingHost = {
+    let routingHost = {
         currentUrl: actingURL,
         locator: locator,
         dispatch: ( route:AlRoute ) => {
@@ -72,7 +73,13 @@ describe( 'AlRoute', () => {
     } );
 
     describe( 'route construction', () => {
-
+        let warnStub;
+        beforeEach( () => {
+            warnStub = sinon.stub( console, "warn" );
+        } );
+        afterEach( () => {
+            warnStub.restore();
+        } );
         it( 'should evaluate route HREFs properly', () => {
             const menu = new AlRoute( routingHost, {
                 caption: "Test Route",
@@ -83,7 +90,6 @@ describe( 'AlRoute', () => {
                 },
                 properties: {}
             } );
-            menu.refresh( true );
             expect( menu.baseHREF ).to.equal( "https://console.overview.alertlogic.com" );
             expect( menu.href ).to.equal( "https://console.overview.alertlogic.com/#/remediations-scan-status/2" );
             expect( menu.visible ).to.equal( true );
@@ -98,7 +104,6 @@ describe( 'AlRoute', () => {
                 },
                 properties: {}
             } );
-            menu.refresh( true );
             expect( menu.baseHREF ).to.equal( "https://console.overview.alertlogic.com" );
             expect( menu.href ).to.equal( "https://console.overview.alertlogic.com/#/path/:notExistingVariable/something" );
             expect( menu.visible ).to.equal( false );
@@ -113,10 +118,10 @@ describe( 'AlRoute', () => {
                 },
                 properties: {}
             } );
-            menu.refresh( false );
             expect( menu.baseHREF ).to.equal( null );
             expect( menu.href ).to.equal( null );
             expect( menu.visible ).to.equal( false );
+            expect( warnStub.callCount ).to.equal( 1 );
         } );
     } );
 
@@ -253,6 +258,43 @@ describe( 'AlRoute', () => {
             expect( menu.children[0].activated ).to.equal( true );
             expect( menu.activated ).to.equal( true );
 
+        } );
+    } );
+
+    describe( "conditional evaluation", () => {
+        it("should ignore unknown condition types and treat them as truthy", () => {
+            let route = new AlRoute( routingHost, <AlRouteDefinition><unknown>{
+                caption: "Test Route",
+                action: {
+                    type: "link",
+                    url: "https://www.google.com"
+                },
+                visible: {
+                    not_recognized: true
+                }
+            } );
+
+            expect( route.visible ).to.equal( true );
+        } );
+
+        it("should evaluate path_matches as expected", () => {
+            routingHost.currentUrl = "https://console.remediations.alertlogic.com/#/remediations-scan-status/2";
+            let route = new AlRoute( routingHost, {
+                caption: "Test Route",
+                action: {
+                    type: "link",
+                    url: "https://www.google.com"
+                },
+                visible: {
+                    path_matches: '/remediations-scan-status.*'
+                }
+            } );
+
+            expect( route.visible ).to.equal( true );
+
+            route.definition.visible.path_matches = "/something-else.*";
+            route.refresh( true );
+            expect( route.visible ).to.equal( false );
         } );
     } );
 } );

@@ -6,13 +6,36 @@ describe( 'AlLocatorMatrix', () => {
 
     const nodes:AlLocationDescriptor[] = [
         ...AlLocation.uiNode( AlLocation.OverviewUI, 'overview', 4213 ),
-        ...AlLocation.uiNode( AlLocation.IncidentsUI, 'incidents', 8001 )
+        ...AlLocation.uiNode( AlLocation.IncidentsUI, 'incidents', 8001 ),
+        {
+            locTypeId: AlLocation.LegacyUI,
+            insightLocationId: "defender-us-denver",
+            uri: 'https://console.clouddefender.alertlogic.com',
+            residency: 'US',
+            environment: 'production'
+        },
+        {
+            locTypeId: AlLocation.LegacyUI,
+            insightLocationId: "defender-us-ashburn",
+            uri: 'https://console.alertlogic.net',
+            residency: 'US',
+            environment: 'production'
+        },
+        {
+            locTypeId: AlLocation.LegacyUI,
+            insightLocationId: "defender-uk-newport",
+            uri: 'https://console.alertlogic.co.uk',
+            residency: 'EMEA',
+            environment: 'production'
+        }
     ];
     let locator:AlLocatorMatrix;
 
     describe( 'utility methods', () => {
         beforeEach( () => {
-            locator = new AlLocatorMatrix();
+            locator = new AlLocatorMatrix(  nodes,
+                                            "https://console.incidents.product.dev.alertlogic.com/#/summary/2?aaid=2&locid=defender-us-denver",
+                                            { insightLocationId: "defender-us-defender", accessible: [ "defender-us-denver", "insight-us-virginia" ] } );
         } );
 
         it( "should escape uri patterns in the expected way", () => {
@@ -34,6 +57,45 @@ describe( 'AlLocatorMatrix', () => {
             expect( node.environment ).to.equal( "integration" );
             expect( node.residency ).to.equal( undefined );
             expect( node.locTypeId ).to.equal( AlLocation.IncidentsUI );
+        } );
+
+        it( "should propertly identify the acting node from the acting URL passed to the constructor", () => {
+            let actor = locator.getActingNode();
+            expect( actor ).to.be.an( 'object' );
+            expect( actor.locTypeId ).to.equal( AlLocation.IncidentsUI );
+            expect( actor.environment ).to.equal( 'integration' );
+        } );
+
+        it( "should allow retrieval of nodes with contextual overrides", () => {
+            let node = locator.getNode( AlLocation.LegacyUI, { insightLocationId: 'defender-us-denver', environment: "production", residency: 'US' } );
+            expect( node ).to.be.an( 'object' );
+            expect( node.residency ).to.equal( 'US' );
+            expect( node.environment ).to.equal( 'production' );
+            expect( node.insightLocationId ).to.equal( 'defender-us-denver' );
+
+            node = locator.getNode( AlLocation.LegacyUI, { insightLocationId: 'insight-us-virginia', environment: "production", residency: 'US' } );
+            expect( node ).to.be.an( 'object' );
+            expect( node.residency ).to.equal( 'US' );
+            expect( node.environment ).to.equal( 'production' );
+            expect( node.insightLocationId ).to.equal( 'defender-us-denver' );
+        } );
+
+        it( "should normalize insight locations to defender ones", () => {
+            locator.setContext( { insightLocationId: "insight-us-virginia", accessible: [ "insight-us-virginia", "defender-us-ashburn" ], residency: 'US' } );
+            expect( locator.getContext().insightLocationId ).to.equal( "defender-us-ashburn" );
+            expect( locator.getContext().residency ).to.equal( 'US' );      //  this should be unchanged
+
+            locator.setContext( { insightLocationId: "insight-us-virginia", accessible: [ "insight-us-virginia", "defender-us-denver" ], residency: 'EMEA' } );
+            expect( locator.getContext().insightLocationId ).to.equal( "defender-us-denver" );
+            expect( locator.getContext().residency ).to.equal( 'US' );      //  this should be overridden from 'EMEA'
+
+            locator.setContext( { insightLocationId: "insight-eu-ireland", accessible: [ "insight-eu-ireland", "defender-uk-newport" ], residency: 'US' } );
+            expect( locator.getContext().insightLocationId ).to.equal( "defender-uk-newport" );
+            expect( locator.getContext().residency ).to.equal( 'EMEA' );      //  this should be overridden from 'US'
+
+            locator.setContext( { insightLocationId: "insight-us-virginia", accessible: [ "insight-us-virginia" ], residency: 'EMEA' } );
+            expect( locator.getContext().insightLocationId ).to.equal( "defender-us-denver" );          //  yes, just trust me on this
+            expect( locator.getContext().residency ).to.equal( 'US' );      //  this should be overridden because the contextual residency doesn't make any sense
         } );
     } );
 

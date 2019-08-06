@@ -57,6 +57,7 @@ export interface AlRouteCondition
     rule?:string;                       //  must be "any", "all", or "none"
     conditions?:AlRouteCondition[];     //  An array of child conditions to evaluate using the indicated rule
     entitlements?:string;               //  An entitlement expression to evaluate
+    path_matches?:string;               //  Path matches a given regular expression
     parameters?:string[];               //  An array of route parameters that must be set for the route to be visible/active
 }
 
@@ -94,7 +95,7 @@ export interface AlRouteDefinition {
     caption:string;
 
     /* Arbitrary properties */
-    properties: {[property:string]:any};
+    properties?: {[property:string]:any};
 
     /* The action to perform when the menu item is clicked.
      * If the provided value is a string, it will be treated as a reference to a named route in the current schema. */
@@ -294,9 +295,12 @@ export class AlRoute {
      * Helper Messages
      */
     evaluateHref( action:AlRouteAction ):boolean {
+        if ( action.url ) {
+            return true;
+        }
         let node = AlLocatorService.getNode( action.location );
         if ( ! node ) {
-            console.warn(`Warning: cannot link to unknown location '${action.location}'` );
+            console.warn(`Warning: cannot link to unknown location '${action.location}' in menu item '${this.caption}` );
             return false;
         }
 
@@ -359,14 +363,30 @@ export class AlRoute {
                 return ( passed === 0 ) ? true : false;
             }
             return false;
-        } else if ( condition.parameters ) {
-            return condition.parameters.reduce( ( present, parameterName ) => {
+        }
+
+        let truthful = true;
+        if ( condition.parameters ) {
+            //  Evaluates true only if all of the referenced route parameters exist
+            truthful = truthful && condition.parameters.reduce( ( present, parameterName ) => {
                     return present && this.host.routeParameters.hasOwnProperty( parameterName );
                 }, true );
-        } else {
-            //  This condition refers to entitlement or other externally managed data -- ask the host to evaluate it.
-            return this.host.evaluate( condition );
         }
+        if ( condition.path_matches ) {
+            //  Evaluates true only if the current path matches a given regular expression
+            truthful = truthful && this.evaluatePathMatch( condition.path_matches );
+        }
+        if ( condition.entitlements ) {
+            //  This condition refers to entitlement or other externally managed data -- ask the host to evaluate it.
+            truthful = truthful && this.host.evaluate( condition );
+        }
+        return truthful;
+    }
+
+    evaluatePathMatch( pathMatches:string ) {
+        let pattern = "^.*" + pathMatches.replace(/[{}()|[\]\\\/]/g, '\\$&') + "$";
+        let comparison = new RegExp( pattern );
+        return comparison.test( this.host.currentUrl );
     }
 
     getRouteAction():AlRouteAction {

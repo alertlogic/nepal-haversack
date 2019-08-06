@@ -8,7 +8,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
     */
     {
         locTypeId: AlLocation.GlobalAPI,
-        locationId: 'insight-global',
+        insightLocationId: 'insight-global',
         productType: 'insight',
         aspect: 'api',
         uri: 'https://api.global.alertlogic.com',
@@ -16,7 +16,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
     },
     {
         locTypeId: AlLocation.GlobalAPI,
-        locationId: 'insight-global',
+        insightLocationId: 'insight-global',
         productType: 'insight',
         aspect: 'api',
         uri: 'https://api.global-integration.product.dev.alertlogic.com',
@@ -24,7 +24,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
     },
     {
         locTypeId: AlLocation.GlobalAPI,
-        locationId: 'insight-global',
+        insightLocationId: 'insight-global',
         productType: 'insight',
         aspect: 'api',
         uri: 'https://api.global-integration.product.dev.alertlogic.com',
@@ -74,7 +74,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
     */
     {
         locTypeId: AlLocation.LegacyUI,
-        locationId: 'defender-us-denver',
+        insightLocationId: 'defender-us-denver',
         productType: 'defender',
         aspect: 'ui',
         uri: 'https://console.clouddefender.alertlogic.com',
@@ -89,7 +89,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
 
     {
         locTypeId: AlLocation.LegacyUI,
-        locationId: 'defender-uk-newport',
+        insightLocationId: 'defender-uk-newport',
         productType: 'defender',
         aspect: 'ui',
         uri: 'https://console.alertlogic.co.uk',
@@ -104,7 +104,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
 
     {
         locTypeId: AlLocation.LegacyUI,
-        locationId: 'defender-us-ashburn',
+        insightLocationId: 'defender-us-ashburn',
         productType: 'defender',
         aspect: 'ui',
         uri: 'https://cd-integration-console.alertlogic.net',
@@ -119,7 +119,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
 
     {
         locTypeId: AlLocation.LegacyUI,
-        locationId: 'defender-us-ashburn',
+        insightLocationId: 'defender-us-ashburn',
         productType: 'defender',
         aspect: 'ui',
         uri: 'https://cd-integration-console.alertlogic.net',
@@ -134,7 +134,7 @@ export const AlLocationDictionary: AlLocationDescriptor[] =
 
     {
         locTypeId: AlLocation.LegacyUI,
-        locationId: 'defender-us-ashburn',
+        insightLocationId: 'defender-us-ashburn',
         productType: 'defender',
         aspect: 'ui',
         uri: 'https://cd-integration-console.alertlogic.net',
